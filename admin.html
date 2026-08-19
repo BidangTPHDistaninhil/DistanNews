@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Admin - DistanNews</title>
+<style>
+  :root{
+    --hijau: #1e6b2f;
+    --hijau-tua: #144d21;
+    --hijau-muda: #e8f5ea;
+    --abu: #6b7280;
+    --border: #e2e8e4;
+    --merah: #c0392b;
+    --kuning: #b7791f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family: Arial, Helvetica, sans-serif; background:#f4f7f4; color:#222;}
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+
+  .layout{display:flex;min-height:100vh;}
+
+  .sidebar{
+    width:220px;background:var(--hijau-tua);color:#fff;flex-shrink:0;
+    display:flex;flex-direction:column;padding:20px 0;
+  }
+  .sidebar .logo{padding:0 20px 20px;font-size:20px;font-weight:bold;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:14px;}
+  .sidebar .logo span{color:#c7f9cc;}
+  .sidebar .nama-admin{padding:0 20px;font-size:12px;opacity:.75;margin-bottom:18px;}
+  .sidebar button.tab-btn{
+    background:none;border:none;color:#e8f5ea;text-align:left;padding:12px 20px;font-size:14px;font-weight:600;
+  }
+  .sidebar button.tab-btn.active{background:var(--hijau);color:#fff;}
+  .sidebar button.tab-btn:hover{background:rgba(255,255,255,.08);}
+  .sidebar .btn-logout{margin-top:auto;padding:12px 20px;font-size:13px;color:#f5c6c0;background:none;border:none;text-align:left;}
+
+  .content{flex:1;padding:28px 32px;overflow-x:auto;}
+  .tab{display:none;}
+  .tab.active{display:block;}
+
+  h1.judul-halaman{font-size:22px;color:var(--hijau-tua);margin-bottom:20px;}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px;}
+  .stat-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:18px;}
+  .stat-card .angka{font-size:28px;font-weight:bold;color:var(--hijau-tua);}
+  .stat-card .label{font-size:13px;color:var(--abu);margin-top:4px;}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;font-size:13px;}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);}
+  th{background:var(--hijau-muda);color:var(--hijau-tua);font-size:12px;text-transform:uppercase;}
+  tr:last-child td{border-bottom:none;}
+
+  .badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+  .badge-published{background:#e6f4ea;color:#1e6b2f;}
+  .badge-draft{background:#fdf3e0;color:var(--kuning);}
+
+  .aksi-btn{border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:700;margin-right:4px;color:#fff;}
+  .aksi-edit{background:#3b82f6;}
+  .aksi-hapus{background:var(--merah);}
+  .aksi-publish{background:var(--hijau);}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .btn-primary{background:var(--hijau);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:700;}
+  .btn-primary:hover{background:var(--hijau-tua);}
+
+  form.form-berita{background:#fff;border:1px solid var(--border);border-radius:10px;padding:22px;max-width:640px;}
+  form.form-berita label{display:block;font-size:13px;font-weight:700;margin-bottom:6px;margin-top:14px;}
+  form.form-berita input, form.form-berita select, form.form-berita textarea{
+    width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;
+  }
+  form.form-berita textarea{resize:vertical;}
+  .form-actions{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap;}
+  .btn-draft{background:#fff;color:var(--hijau-tua);border:1.5px solid var(--hijau);padding:11px 18px;border-radius:8px;font-weight:700;}
+  .btn-publish{background:var(--hijau);color:#fff;border:none;padding:11px 18px;border-radius:8px;font-weight:700;}
+  .btn-batal{background:none;color:var(--abu);border:none;padding:11px 6px;font-weight:700;}
+
+  .pesan{margin-top:14px;padding:10px 12px;border-radius:8px;font-size:13px;display:none;}
+  .pesan-sukses{background:#e6f4ea;color:#1e6b2f;border:1px solid #b7dfc0;}
+  .pesan-gagal{background:#fdecea;color:var(--merah);border:1px solid #f5c6c0;}
+
+  .state-msg{padding:30px 10px;text-align:center;color:var(--abu);font-size:13px;}
+
+  @media(max-width:720px){
+    .layout{flex-direction:column;}
+    .sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:10px;}
+    .sidebar .logo,.sidebar .nama-admin,.sidebar .btn-logout{display:none;}
+    .sidebar button.tab-btn{white-space:nowrap;}
+    table{font-size:12px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="logo">Distan<span>News</span></div>
+    <div class="nama-admin" id="nama-admin">Memuat...</div>
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="kelola">Kelola Berita</button>
+    <button class="tab-btn" data-tab="tambah">Tambah Berita</button>
+    <button class="btn-logout" id="btn-logout">Logout</button>
+  </div>
+
+  <div class="content">
+
+    <!-- TAB: DASHBOARD -->
+    <div class="tab active" id="tab-dashboard">
+      <h1 class="judul-halaman">Dashboard</h1>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="angka" id="stat-total">-</div><div class="label">Total Berita</div></div>
+        <div class="stat-card"><div class="angka" id="stat-published">-</div><div class="label">Published</div></div>
+        <div class="stat-card"><div class="angka" id="stat-draft">-</div><div class="label">Draft</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--abu);">Gunakan menu di sebelah kiri untuk mengelola atau menambahkan berita baru.</p>
+    </div>
+
+    <!-- TAB: KELOLA BERITA -->
+    <div class="tab" id="tab-kelola">
+      <div class="toolbar">
+        <h1 class="judul-halaman" style="margin-bottom:0;">Kelola Berita</h1>
+        <button class="btn-primary" id="btn-ke-tambah">+ Tambah Berita</button>
+      </div>
+      <div id="wrap-tabel-berita">
+        <div class="state-msg">Memuat data...</div>
+      </div>
+    </div>
+
+    <!-- TAB: TAMBAH / EDIT BERITA -->
+    <div class="tab" id="tab-tambah">
+      <h1 class="judul-halaman" id="judul-form-berita">Tambah Berita</h1>
+      <form class="form-berita" id="form-berita">
+        <input type="hidden" id="f-id">
+
+        <label for="f-judul">Judul *</label>
+        <input type="text" id="f-judul" required>
+
+        <label for="f-kategori">Kategori *</label>
+        <select id="f-kategori" required>
+          <option value="">Pilih kategori</option>
+          <option value="Tanaman Pangan">Tanaman Pangan</option>
+          <option value="Hortikultura">Hortikultura</option>
+          <option value="Perkebunan">Perkebunan</option>
+          <option value="Peternakan">Peternakan</option>
+          <option value="Teknologi Pertanian">Teknologi Pertanian</option>
+          <option value="Kebijakan">Kebijakan</option>
+          <option value="Umum">Umum</option>
+        </select>
+
+        <label for="f-penulis">Penulis *</label>
+        <input type="text" id="f-penulis" required>
+
+        <label for="f-foto">URL Foto Utama</label>
+        <input type="url" id="f-foto" placeholder="https://...">
+
+        <label for="f-ringkasan">Ringkasan</label>
+        <textarea id="f-ringkasan" rows="2"></textarea>
+
+        <label for="f-isi">Isi Berita *</label>
+        <textarea id="f-isi" rows="8" required placeholder="Tulis isi berita. Pisahkan paragraf dengan baris baru."></textarea>
+
+        <label for="f-sumber">Sumber</label>
+        <input type="text" id="f-sumber">
+
+        <label for="f-ket-foto">Keterangan Foto</label>
+        <input type="text" id="f-ket-foto">
+
+        <div class="pesan" id="pesan-form"></div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-draft" id="btn-simpan-draft">Simpan Draft</button>
+          <button type="button" class="btn-publish" id="btn-publish">Publish</button>
+          <button type="button" class="btn-batal" id="btn-batal-form">Batal</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // =====================================================
+  // GANTI URL DI BAWAH INI DENGAN URL WEB APP APPS SCRIPT
+  // (harus diakhiri dengan /exec)
+  // =====================================================
+  const API_URL = "https://script.google.com/macros/s/AKfycbwABO9Qg2xR4Z49K6mH3kjgitq1qtjGK1ZOesGxgsX40QQ82aF6UgevfWMLRO3KpiLr/exec";
+
+  // ---------- CEK SESI LOGIN ----------
+  const token = sessionStorage.getItem('distannews_token');
+  const expiredAt = Number(sessionStorage.getItem('distannews_expired_at') || 0);
+  if(!token || expiredAt < Date.now()){
+    sessionStorage.clear();
+    window.location.href = 'login.html';
+  }
+  document.getElementById('nama-admin').textContent =
+    'Login sebagai: ' + (sessionStorage.getItem('distannews_nama') || '-');
+
+  document.getElementById('btn-logout').addEventListener('click', function(){
+    sessionStorage.clear();
+    window.location.href = 'login.html';
+  });
+
+  // ---------- HELPER ----------
+  function escapeHtml(str){
+    if(str===undefined || str===null) return '';
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function formatTanggal(iso){
+    if(!iso) return '-';
+    const d = new Date(iso);
+    return d.toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
+  }
+  async function apiPost(payload){
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // menghindari CORS preflight
+      body: JSON.stringify(payload)
+    });
+    return res.json();
+  }
+  function tanganiSesiTidakValid(json){
+    if(!json.success && /token/i.test(json.message || '')){
+      sessionStorage.clear();
+      window.location.href = 'login.html';
+      return true;
+    }
+    return false;
+  }
+
+  // ---------- NAVIGASI TAB ----------
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabs = document.querySelectorAll('.tab');
+  function bukaTab(nama){
+    tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === nama));
+    tabs.forEach(t => t.classList.toggle('active', t.id === 'tab-' + nama));
+    if(nama === 'dashboard') muatDashboard();
+    if(nama === 'kelola') muatTabelBerita();
+  }
+  tabBtns.forEach(b => b.addEventListener('click', () => bukaTab(b.dataset.tab)));
+  document.getElementById('btn-ke-tambah').addEventListener('click', () => {
+    resetForm();
+    bukaTab('tambah');
+  });
+
+  // ---------- DATA CACHE ----------
+  let cacheBerita = [];
+
+  async function ambilSemuaBerita(){
+    const params = new URLSearchParams({ action:'getAdminList', token });
+    const res = await fetch(`${API_URL}?${params.toString()}`);
+    const json = await res.json();
+    if(tanganiSesiTidakValid(json)) return [];
+    if(!json.success) throw new Error(json.message);
+    return json.data || [];
+  }
+
+  // ---------- DASHBOARD ----------
+  async function muatDashboard(){
+    try{
+      cacheBerita = await ambilSemuaBerita();
+      const total = cacheBerita.length;
+      const published = cacheBerita.filter(b => b.status === 'PUBLISHED').length;
+      const draft = cacheBerita.filter(b => b.status === 'DRAFT').length;
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-published').textContent = published;
+      document.getElementById('stat-draft').textContent = draft;
+    }catch(err){
+      console.error(err);
+    }
+  }
+
+  // ---------- KELOLA BERITA (TABEL) ----------
+  async function muatTabelBerita(){
+    const wrap = document.getElementById('wrap-tabel-berita');
+    wrap.innerHTML = `<div class="state-msg">Memuat data...</div>`;
+    try{
+      cacheBerita = await ambilSemuaBerita();
+      if(cacheBerita.length === 0){
+        wrap.innerHTML = `<div class="state-msg">Belum ada berita. Klik "Tambah Berita" untuk membuat berita pertama.</div>`;
+        return;
+      }
+      const baris = cacheBerita.map(b => `
+        <tr>
+          <td>${escapeHtml(b.judul)}</td>
+          <td>${escapeHtml(b.kategori)}</td>
+          <td>${formatTanggal(b.tanggal_publish || b.timestamp)}</td>
+          <td><span class="badge ${b.status === 'PUBLISHED' ? 'badge-published' : 'badge-draft'}">${escapeHtml(b.status)}</span></td>
+          <td>
+            <button class="aksi-btn aksi-edit" data-id="${escapeHtml(b.id)}">Edit</button>
+            ${b.status === 'DRAFT' ? `<button class="aksi-btn aksi-publish" data-id="${escapeHtml(b.id)}">Publish</button>` : ''}
+            <button class="aksi-btn aksi-hapus" data-id="${escapeHtml(b.id)}">Hapus</button>
+          </td>
+        </tr>`).join('');
+
+      wrap.innerHTML = `
+        <table>
+          <thead><tr><th>Judul</th><th>Kategori</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody>${baris}</tbody>
+        </table>`;
+
+      wrap.querySelectorAll('.aksi-edit').forEach(btn => btn.addEventListener('click', () => bukaEdit(btn.dataset.id)));
+      wrap.querySelectorAll('.aksi-hapus').forEach(btn => btn.addEventListener('click', () => hapusBerita(btn.dataset.id)));
+      wrap.querySelectorAll('.aksi-publish').forEach(btn => btn.addEventListener('click', () => publishBerita(btn.dataset.id)));
+    }catch(err){
+      wrap.innerHTML = `<div class="state-msg">Gagal memuat data: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  async function hapusBerita(id){
+    if(!confirm('Hapus berita ini? Tindakan tidak dapat dibatalkan.')) return;
+    const json = await apiPost({ action:'deleteBerita', token, id });
+    if(tanganiSesiTidakValid(json)) return;
+    alert(json.message);
+    if(json.success) muatTabelBerita();
+  }
+
+  async function publishBerita(id){
+    const json = await apiPost({ action:'publishBerita', token, id });
+    if(tanganiSesiTidakValid(json)) return;
+    alert(json.message);
+    if(json.success) muatTabelBerita();
+  }
+
+  // ---------- FORM TAMBAH / EDIT ----------
+  const form = document.getElementById('form-berita');
+  const pesanForm = document.getElementById('pesan-form');
+
+  function resetForm(){
+    document.getElementById('judul-form-berita').textContent = 'Tambah Berita';
+    document.getElementById('f-id').value = '';
+    form.reset();
+    pesanForm.style.display = 'none';
+  }
+
+  function bukaEdit(id){
+    const b = cacheBerita.find(x => String(x.id) === String(id));
+    if(!b) return;
+    document.getElementById('judul-form-berita').textContent = 'Edit Berita';
+    document.getElementById('f-id').value = b.id;
+    document.getElementById('f-judul').value = b.judul || '';
+    document.getElementById('f-kategori').value = b.kategori || '';
+    document.getElementById('f-penulis').value = b.penulis || '';
+    document.getElementById('f-foto').value = b.foto_utama || '';
+    document.getElementById('f-ringkasan').value = b.ringkasan || '';
+    document.getElementById('f-isi').value = b.isi || '';
+    document.getElementById('f-sumber').value = b.sumber || '';
+    document.getElementById('f-ket-foto').value = b.keterangan_foto || '';
+    pesanForm.style.display = 'none';
+    bukaTab('tambah');
+  }
+
+  document.getElementById('btn-batal-form').addEventListener('click', () => {
+    resetForm();
+    bukaTab('kelola');
+  });
+
+  function ambilDataForm(){
+    return {
+      id: document.getElementById('f-id').value || undefined,
+      judul: document.getElementById('f-judul').value.trim(),
+      kategori: document.getElementById('f-kategori').value,
+      penulis: document.getElementById('f-penulis').value.trim(),
+      foto_utama: document.getElementById('f-foto').value.trim(),
+      ringkasan: document.getElementById('f-ringkasan').value.trim(),
+      isi: document.getElementById('f-isi').value.trim(),
+      sumber: document.getElementById('f-sumber').value.trim(),
+      keterangan_foto: document.getElementById('f-ket-foto').value.trim()
+    };
+  }
+
+  function validasiForm(data){
+    if(!data.judul || !data.kategori || !data.penulis || !data.isi){
+      return 'Judul, kategori, penulis, dan isi berita wajib diisi.';
+    }
+    return null;
+  }
+
+  async function simpanBerita(status){
+    const data = ambilDataForm();
+    const errPesan = validasiForm(data);
+    pesanForm.className = 'pesan';
+    if(errPesan){
+      pesanForm.textContent = errPesan;
+      pesanForm.classList.add('pesan-gagal');
+      pesanForm.style.display = 'block';
+      return;
+    }
+
+    data.status = status;
+    data.token = token;
+    data.action = 'saveBerita';
+
+    try{
+      const json = await apiPost(data);
+      if(tanganiSesiTidakValid(json)) return;
+      pesanForm.textContent = json.message;
+      pesanForm.classList.add(json.success ? 'pesan-sukses' : 'pesan-gagal');
+      pesanForm.style.display = 'block';
+
+      if(json.success){
+        setTimeout(() => {
+          resetForm();
+          bukaTab('kelola');
+        }, 800);
+      }
+    }catch(err){
+      pesanForm.textContent = 'Gagal terhubung ke API.';
+      pesanForm.classList.add('pesan-gagal');
+      pesanForm.style.display = 'block';
+      console.error(err);
+    }
+  }
+
+  document.getElementById('btn-simpan-draft').addEventListener('click', () => simpanBerita('DRAFT'));
+  document.getElementById('btn-publish').addEventListener('click', () => simpanBerita('PUBLISHED'));
+
+  // ---------- INIT ----------
+  muatDashboard();
+</script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DistanNews - Portal Informasi & Publikasi Pertanian</title>
+<style>
+  :root{
+    --hijau: #1e6b2f;
+    --hijau-tua: #144d21;
+    --hijau-muda: #e8f5ea;
+    --abu: #6b7280;
+    --border: #e2e8e4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family: Arial, Helvetica, sans-serif; background:#fafcfa; color:#222;}
+  a{text-decoration:none;color:inherit;}
+
+  header{background:var(--hijau); color:#fff; position:sticky; top:0; z-index:10; box-shadow:0 2px 6px rgba(0,0,0,.08);}
+  .header-inner{max-width:1100px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .logo{font-size:22px;font-weight:bold;letter-spacing:.5px;}
+  .logo span{color:#c7f9cc;}
+  nav a{margin-left:18px;font-size:14px;font-weight:600;opacity:.95;}
+  nav a:hover{text-decoration:underline;}
+
+  .hero{background:linear-gradient(135deg,var(--hijau),var(--hijau-tua));color:#fff;padding:36px 20px;text-align:center;}
+  .hero h1{font-size:26px;margin-bottom:8px;}
+  .hero p{opacity:.9;font-size:14px;}
+
+  main{max-width:1100px;margin:0 auto;padding:30px 20px;}
+  .section-title{font-size:20px;color:var(--hijau-tua);margin-bottom:16px;border-left:5px solid var(--hijau);padding-left:10px;}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;transition:.15s;}
+  .card:hover{box-shadow:0 6px 18px rgba(0,0,0,.08);transform:translateY(-2px);}
+  .card img{width:100%;height:160px;object-fit:cover;background:var(--hijau-muda);}
+  .card-body{padding:14px;display:flex;flex-direction:column;gap:6px;flex:1;}
+  .kategori-badge{align-self:flex-start;background:var(--hijau-muda);color:var(--hijau-tua);font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;text-transform:uppercase;}
+  .card h3{font-size:16px;color:#1a1a1a;line-height:1.35;}
+  .card .meta{font-size:12px;color:var(--abu);}
+  .card p.ringkasan{font-size:13px;color:#444;line-height:1.5;flex:1;}
+  .card .baca{font-size:13px;font-weight:700;color:var(--hijau);margin-top:4px;}
+
+  .state-msg{padding:40px 10px;text-align:center;color:var(--abu);font-size:14px;grid-column:1/-1;}
+
+  footer{background:var(--hijau-tua);color:#e8f5ea;text-align:center;padding:20px;font-size:13px;margin-top:40px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">Distan<span>News</span></div>
+    <nav>
+      <a href="index.html">Beranda</a>
+      <a href="berita.html">Semua Berita</a>
+      <a href="login.html">Login Admin</a>
+    </nav>
+  </div>
+</header>
+
+<div class="hero">
+  <h1>Portal Informasi & Publikasi Pertanian</h1>
+  <p>Berita, informasi, dan perkembangan sektor pertanian terkini.</p>
+</div>
+
+<main>
+  <h2 class="section-title">Berita Terbaru</h2>
+  <div class="grid" id="grid-berita">
+    <div class="state-msg" id="state-msg">Memuat berita...</div>
+  </div>
+</main>
+
+<footer>&copy; <span id="tahun"></span> DistanNews. Semua data bersumber dari Google Sheets melalui API resmi.</footer>
+
+<script>
+  // =====================================================
+  // GANTI URL DI BAWAH INI DENGAN URL WEB APP APPS SCRIPT
+  // (harus diakhiri dengan /exec)
+  // =====================================================
+  const API_URL = "https://script.google.com/macros/s/AKfycbwABO9Qg2xR4Z49K6mH3kjgitq1qtjGK1ZOesGxgsX40QQ82aF6UgevfWMLRO3KpiLr/exec";
+
+  document.getElementById('tahun').textContent = new Date().getFullYear();
+
+  function formatTanggal(iso){
+    if(!iso) return '-';
+    const d = new Date(iso);
+    return d.toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
+  }
+
+  function renderCard(b){
+    const foto = b.foto_utama && b.foto_utama.trim() !== ''
+      ? b.foto_utama
+      : 'https://placehold.co/400x240/1e6b2f/ffffff?text=DistanNews';
+    return `
+      <a class="card" href="artikel.html?slug=${encodeURIComponent(b.slug || '')}">
+        <img src="${foto}" alt="${escapeHtml(b.judul)}" loading="lazy" onerror="this.src='https://placehold.co/400x240/1e6b2f/ffffff?text=DistanNews'">
+        <div class="card-body">
+          <span class="kategori-badge">${escapeHtml(b.kategori || 'Umum')}</span>
+          <h3>${escapeHtml(b.judul)}</h3>
+          <div class="meta">${formatTanggal(b.tanggal_publish)} &middot; ${escapeHtml(b.penulis || '')}</div>
+          <p class="ringkasan">${escapeHtml(b.ringkasan || '')}</p>
+          <span class="baca">Baca selengkapnya &rarr;</span>
+        </div>
+      </a>`;
+  }
+
+  function escapeHtml(str){
+    if(str===undefined || str===null) return '';
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  async function muatBerita(){
+    const grid = document.getElementById('grid-berita');
+    try{
+      const res = await fetch(`${API_URL}?action=getList&limit=9`);
+      const json = await res.json();
+      if(!json.success){
+        grid.innerHTML = `<div class="state-msg">Gagal memuat berita: ${escapeHtml(json.message)}</div>`;
+        return;
+      }
+      const data = json.data || [];
+      if(data.length === 0){
+        grid.innerHTML = `<div class="state-msg">Belum ada berita yang dipublish.</div>`;
+        return;
+      }
+      grid.innerHTML = data.map(renderCard).join('');
+    }catch(err){
+      grid.innerHTML = `<div class="state-msg">Tidak dapat terhubung ke API. Periksa API_URL dan koneksi internet.</div>`;
+      console.error(err);
+    }
+  }
+
+  muatBerita();
+</script>
+</body>
+</html>

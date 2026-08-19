@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login Admin - DistanNews</title>
+<style>
+  :root{
+    --hijau: #1e6b2f;
+    --hijau-tua: #144d21;
+    --hijau-muda: #e8f5ea;
+    --abu: #6b7280;
+    --border: #e2e8e4;
+    --merah: #c0392b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family: Arial, Helvetica, sans-serif;
+    background:linear-gradient(135deg,var(--hijau),var(--hijau-tua));
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  .box{
+    background:#fff;border-radius:12px;padding:32px;max-width:380px;width:100%;
+    box-shadow:0 12px 30px rgba(0,0,0,.2);
+  }
+  .logo{text-align:center;font-size:24px;font-weight:bold;color:var(--hijau-tua);margin-bottom:4px;}
+  .logo span{color:var(--hijau);}
+  .subtitle{text-align:center;font-size:13px;color:var(--abu);margin-bottom:24px;}
+
+  label{display:block;font-size:13px;font-weight:700;color:#333;margin-bottom:6px;margin-top:14px;}
+  input{
+    width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;
+  }
+  input:focus{outline:2px solid var(--hijau);border-color:var(--hijau);}
+
+  button{
+    width:100%;margin-top:22px;background:var(--hijau);color:#fff;border:none;padding:12px;
+    border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;
+  }
+  button:hover{background:var(--hijau-tua);}
+  button:disabled{opacity:.6;cursor:not-allowed;}
+
+  .pesan-error{
+    margin-top:14px;background:#fdecea;color:var(--merah);border:1px solid #f5c6c0;
+    padding:10px 12px;border-radius:8px;font-size:13px;display:none;
+  }
+
+  .kembali{display:block;text-align:center;margin-top:18px;font-size:13px;color:var(--hijau-tua);text-decoration:none;font-weight:600;}
+
+  .catatan{margin-top:20px;font-size:11px;color:var(--abu);line-height:1.5;text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="box">
+  <div class="logo">Distan<span>News</span></div>
+  <div class="subtitle">Login Admin</div>
+
+  <form id="form-login">
+    <label for="username">Username</label>
+    <input type="text" id="username" required autocomplete="username">
+
+    <label for="password">Password</label>
+    <input type="password" id="password" required autocomplete="current-password">
+
+    <div class="pesan-error" id="pesan-error"></div>
+
+    <button type="submit" id="btn-login">Login</button>
+  </form>
+
+  <a class="kembali" href="index.html">&larr; Kembali ke beranda</a>
+
+  <div class="catatan">
+    Sistem login ini menggunakan verifikasi sederhana berbasis Google Apps Script
+    dan bukan sistem autentikasi tingkat enterprise. Jangan gunakan password yang
+    juga dipakai di layanan lain.
+  </div>
+</div>
+
+<script>
+  // =====================================================
+  // GANTI URL DI BAWAH INI DENGAN URL WEB APP APPS SCRIPT
+  // (harus diakhiri dengan /exec)
+  // =====================================================
+  const API_URL = "https://script.google.com/macros/s/AKfycbwABO9Qg2xR4Z49K6mH3kjgitq1qtjGK1ZOesGxgsX40QQ82aF6UgevfWMLRO3KpiLr/exec";
+
+  // Jika sudah login (token masih berlaku), langsung arahkan ke admin.html
+  (function cekSesiAktif(){
+    const token = sessionStorage.getItem('distannews_token');
+    const expiredAt = sessionStorage.getItem('distannews_expired_at');
+    if(token && expiredAt && Number(expiredAt) > Date.now()){
+      window.location.href = 'admin.html';
+    }
+  })();
+
+  const form = document.getElementById('form-login');
+  const pesanError = document.getElementById('pesan-error');
+  const btnLogin = document.getElementById('btn-login');
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    pesanError.style.display = 'none';
+    btnLogin.disabled = true;
+    btnLogin.textContent = 'Memproses...';
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    try{
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // menghindari CORS preflight
+        body: JSON.stringify({ action:'login', username, password })
+      });
+      const json = await res.json();
+
+      if(!json.success){
+        pesanError.textContent = json.message || 'Login gagal';
+        pesanError.style.display = 'block';
+        btnLogin.disabled = false;
+        btnLogin.textContent = 'Login';
+        return;
+      }
+
+      const expiredAt = Date.now() + (json.data.expires_in || 8*60*60*1000);
+      sessionStorage.setItem('distannews_token', json.data.token);
+      sessionStorage.setItem('distannews_nama', json.data.nama || username);
+      sessionStorage.setItem('distannews_expired_at', String(expiredAt));
+
+      window.location.href = 'admin.html';
+    }catch(err){
+      pesanError.textContent = 'Tidak dapat terhubung ke API. Periksa API_URL dan koneksi internet.';
+      pesanError.style.display = 'block';
+      btnLogin.disabled = false;
+      btnLogin.textContent = 'Login';
+      console.error(err);
+    }
+  });
+</script>
+</body>
+</html>
