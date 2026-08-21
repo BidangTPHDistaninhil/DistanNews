@@ -364,62 +364,29 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
   document.getElementById('searchInput').addEventListener('input', terapkanFilter);
   document.getElementById('categoryFilter').addEventListener('change', terapkanFilter);
 
-async function muatBerita(){
-  const grid = document.getElementById('newsGrid');
-
-  try{
-    const apiUrl = `${API_URL}?action=getList&t=${Date.now()}`;
-
-    const res = await fetch(apiUrl, {
-      method: 'GET',
-      cache: 'no-store',
-      redirect: 'follow'
-    });
-
-    if(!res.ok){
-      throw new Error(`API Error: HTTP ${res.status}`);
-    }
-
-    const json = await res.json();
-
-    console.log('DATA API:', json);
-
-    if(!json.success){
-      document.getElementById('featured-wrap').innerHTML =
-        `<div class="state-box">
-          <div class="icon">⚠️</div>
-          ${escapeHtml(json.message)}
-        </div>`;
-
+  async function muatBerita(){
+    const grid = document.getElementById('newsGrid');
+    try{
+      const res = await fetch(`${API_URL}?action=getList`);
+      const json = await res.json();
+      if(!json.success){
+        document.getElementById('featured-wrap').innerHTML = `<div class="state-box"><div class="icon">⚠️</div>${escapeHtml(json.message)}</div>`;
+        grid.innerHTML = '';
+        return;
+      }
+      allBerita = json.data || [];
+      renderFeatured(allBerita[0]);
+      // grid utama tidak menampilkan ulang berita featured
+      filteredBerita = allBerita.slice(1);
+      renderGridDanPagination();
+    }catch(err){
+      document.getElementById('featured-wrap').innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Tidak dapat terhubung ke API. Periksa API_URL dan koneksi internet.</div>`;
       grid.innerHTML = '';
-      return;
+      console.error(err);
     }
-
-    allBerita = json.data || [];
-
-    console.log('FOTO UTAMA:', allBerita[0]?.foto_utama);
-
-    renderFeatured(allBerita[0]);
-
-    filteredBerita = allBerita.slice(1);
-
-    renderGridDanPagination();
-
-  }catch(err){
-
-    console.error('GAGAL MEMUAT API:', err);
-
-    document.getElementById('featured-wrap').innerHTML =
-      `<div class="state-box">
-        <div class="icon">⚠️</div>
-        Tidak dapat terhubung ke API.
-        <br>
-        <small>${escapeHtml(err.message)}</small>
-      </div>`;
-
-    grid.innerHTML = '';
   }
-};
+
+  muatBerita();
 </script>
 </body>
 </html>
