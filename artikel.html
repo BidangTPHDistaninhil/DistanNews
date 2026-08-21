@@ -52,6 +52,8 @@ article.artikel{background:#fff;border:1px solid var(--border);border-radius:24p
 .keterangan-foto{font-size:12px;color:var(--muted);font-style:italic;margin-top:8px;}
 .isi-berita{font-size:16px;line-height:1.85;color:var(--text);margin-top:22px;}
 .isi-berita p{margin-bottom:18px;}
+.isi-berita ul,.isi-berita ol{margin:0 0 18px 26px;}
+.isi-berita u{text-decoration:underline;}
 .sumber-box{margin-top:26px;padding:14px 16px;background:var(--green-light);border-left:4px solid var(--green);border-radius:8px;font-size:13px;color:var(--green-dark);}
 
 .state-box{background:#fff;border:1px solid var(--border);border-radius:18px;padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;margin-bottom:50px;}
@@ -209,7 +211,14 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
 
   function renderIsi(isi){
     if(!isi) return '';
-    return String(isi).split(/\n+/).filter(p => p.trim() !== '').map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
+    const teks = String(isi);
+    // Berita baru disimpan sebagai HTML dari editor (bold/miring/rata kiri-tengah-kanan/list),
+    // jadi cukup ditampilkan langsung.
+    if(/<\/?[a-z][\s\S]*>/i.test(teks)){
+      return teks;
+    }
+    // Kompatibel dengan berita lama yang masih disimpan sebagai teks polos.
+    return teks.split(/\n+/).filter(p => p.trim() !== '').map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
   }
 
   async function muatArtikel(){
