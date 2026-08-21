@@ -375,10 +375,14 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
         return;
       }
       allBerita = json.data || [];
-      renderFeatured(allBerita[0]);
-      // grid utama tidak menampilkan ulang berita featured
-      filteredBerita = allBerita.slice(1);
-      renderGridDanPagination();
+
+console.log('DATA API:', allBerita);
+console.log('FOTO UTAMA:', allBerita[0]?.foto_utama);
+
+renderFeatured(allBerita[0]);
+// grid utama tidak menampilkan ulang berita featured
+filteredBerita = allBerita.slice(1);
+renderGridDanPagination();
     }catch(err){
       document.getElementById('featured-wrap').innerHTML = `<div class="state-box"><div class="icon">⚠️</div>Tidak dapat terhubung ke API. Periksa API_URL dan koneksi internet.</div>`;
       grid.innerHTML = '';
