@@ -43,10 +43,11 @@ header{background:#fff;position:sticky;top:0;z-index:1000;box-shadow:0 2px 12px 
 
 .container{max-width:1200px;margin:auto;padding:0 20px;}
 .section{padding:55px 0;}
-.page-heading{padding:45px 0 25px;}
+.page-heading{padding:90px 0 140px;position:relative;overflow:hidden;}
+.page-heading>.container{position:relative;z-index:2;}
 .page-heading small{display:block;color:var(--gold);font-size:12px;text-transform:uppercase;letter-spacing:1.5px;font-weight:800;margin-bottom:6px;}
-.page-heading h1{color:var(--green-dark);font-size:38px;line-height:1.15;}
-.page-heading p{color:var(--muted);margin-top:8px;font-size:14px;max-width:700px;}
+.page-heading h1{color:#fff;font-size:38px;line-height:1.15;text-shadow:0 2px 20px rgba(0,0,0,.25);}
+.page-heading p{color:rgba(255,255,255,.8);margin-top:8px;font-size:14px;max-width:700px;}
 
 .featured{padding:10px 0 35px;}
 .featured-card{display:grid;grid-template-columns:1.2fr 1fr;background:#fff;border:1px solid var(--border);border-radius:24px;overflow:hidden;box-shadow:var(--shadow);}
@@ -105,12 +106,33 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
     .navbar{padding:12px 15px;}
     .brand-text strong{font-size:19px;}
     .container{padding:0 15px;}
-    .page-heading{padding:35px 0 20px;}
+    .page-heading{padding:60px 0 100px;}
     .page-heading h1{font-size:28px;}
     .featured-content{padding:25px;}
     .featured-content h2{font-size:23px;}
     .news-grid{grid-template-columns:1fr;}
     .footer-main{grid-template-columns:1fr;gap:25px;}
+}
+
+/* ============ BACKGROUND HAMPARAN PADI SINEMATIK (dekoratif, page-heading) ============ */
+.hero-photo{position:absolute;inset:0;z-index:0;overflow:hidden;}
+.hero-photo img{width:100%;height:100%;object-fit:cover;filter:saturate(1.15) brightness(.6);animation:dn-zoom 17s ease-in-out infinite alternate;}
+@keyframes dn-zoom{from{transform:scale(1);}to{transform:scale(1.09);}}
+.hero-overlay{position:absolute;inset:0;z-index:1;
+    background:
+        linear-gradient(to top, rgba(13,71,39,.96) 0%, rgba(13,71,39,.55) 45%, rgba(13,71,39,.18) 100%),
+        linear-gradient(to right, rgba(13,71,39,.55) 0%, transparent 55%);
+}
+.hero-particles{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
+.hero-particle{position:absolute;bottom:0;border-radius:50%;opacity:0;animation:dn-particle var(--dur,9s) ease-in-out infinite;animation-delay:var(--delay,0s);}
+@keyframes dn-particle{
+    0%{transform:translateY(0) translateX(0);opacity:0;}
+    15%{opacity:var(--max-op,.7);}
+    85%{opacity:var(--max-op,.7);}
+    100%{transform:translateY(var(--dy,-170px)) translateX(var(--dx,20px));opacity:0;}
+}
+@media(prefers-reduced-motion:reduce){
+    .hero-photo img,.hero-particle{animation:none!important;}
 }
 </style>
 </head>
@@ -143,6 +165,11 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
 
 <main>
   <section class="page-heading">
+    <div class="hero-photo" aria-hidden="true">
+      <img src="https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1600&q=80" alt="">
+    </div>
+    <div class="hero-overlay" aria-hidden="true"></div>
+    <div class="hero-particles" id="heroParticles" aria-hidden="true"></div>
     <div class="container">
       <small>Publikasi</small>
       <h1>Portal Informasi & Publikasi Pertanian</h1>
@@ -204,6 +231,32 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
 
   function toggleMenu(){ document.getElementById('navMenu').classList.toggle('show'); }
   document.querySelectorAll('.nav-menu a').forEach(a => a.addEventListener('click', () => document.getElementById('navMenu').classList.remove('show')));
+
+  // Partikel dekoratif melayang di atas foto hero (hijau & emas, sesuai brand)
+  (function buatPartikelHero(){
+    const wrap = document.getElementById('heroParticles');
+    if(!wrap) return;
+    const jumlah = 22;
+    for(let i=0;i<jumlah;i++){
+      const p = document.createElement('div');
+      p.className = 'hero-particle';
+      const ukuran = Math.random()*4+2;
+      const emas = Math.random() > 0.55;
+      const warna = emas ? '#f0c75e' : '#8fe3ab';
+      p.style.cssText = `
+        width:${ukuran}px;height:${ukuran}px;
+        left:${Math.random()*100}%;
+        background:${warna};
+        box-shadow:0 0 ${ukuran*3}px ${warna};
+        --dur:${7+Math.random()*8}s;
+        --dy:${-120-Math.random()*180}px;
+        --dx:${(Math.random()-0.5)*70}px;
+        --max-op:${0.4+Math.random()*0.4};
+        --delay:${Math.random()*7}s;
+      `;
+      wrap.appendChild(p);
+    }
+  })();
 
   function escapeHtml(str){
     if(str===undefined || str===null) return '';
