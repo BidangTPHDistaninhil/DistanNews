@@ -163,9 +163,50 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
     if(!iso) return '-';
     return new Date(iso).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
   }
-  function fotoAtauPlaceholder(url, w, h){
-    return (url && url.trim() !== '') ? url : `https://placehold.co/${w}x${h}/176b3a/ffffff?text=DistanNews`;
+
+  // =====================================================
+  // KONVERSI LINK GOOGLE DRIVE -> LINK GAMBAR LANGSUNG
+  // Link Drive biasa (mis. .../file/d/ID/view atau ?id=ID)
+  // tidak bisa langsung dipakai sebagai src <img>.
+  // Fungsi ini mendeteksi ID file Drive dan mengubahnya
+  // ke format thumbnail yang bisa ditampilkan langsung.
+  // Pastikan file di Drive di-share dengan akses:
+  // "Anyone with the link" (Siapa saja yang memiliki link).
+  // =====================================================
+  function konversiUrlGambar(url){
+    if(!url) return url;
+    url = String(url).trim();
+    if(url === '') return url;
+
+    if(url.includes('drive.google.com') || url.includes('googleusercontent.com')){
+      let fileId = null;
+
+      // Pola 1: https://drive.google.com/file/d/FILE_ID/view?...
+      let cocok = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+      if(cocok) fileId = cocok[1];
+
+      // Pola 2: https://drive.google.com/open?id=FILE_ID
+      // atau https://drive.google.com/uc?id=FILE_ID&export=download
+      if(!fileId){
+        cocok = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+        if(cocok) fileId = cocok[1];
+      }
+
+      if(fileId){
+        // Format thumbnail Google Drive, paling stabil untuk hotlink <img>
+        return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+      }
+    }
+
+    // Bukan link Drive (atau ID tidak terbaca) -> pakai apa adanya
+    return url;
   }
+
+  function fotoAtauPlaceholder(url, w, h){
+    const urlBersih = konversiUrlGambar(url);
+    return (urlBersih && urlBersih.trim() !== '') ? urlBersih : `https://placehold.co/${w}x${h}/176b3a/ffffff?text=DistanNews`;
+  }
+
   function renderIsi(isi){
     if(!isi) return '';
     return String(isi).split(/\n+/).filter(p => p.trim() !== '').map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
@@ -198,7 +239,7 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
 
       main.innerHTML = `
         <article class="artikel">
-          <img class="artikel-foto" src="${fotoAtauPlaceholder(b.foto_utama,900,500)}" alt="${escapeHtml(b.judul)}" onerror="this.src='https://placehold.co/900x500/176b3a/ffffff?text=DistanNews'">
+          <img class="artikel-foto" src="${fotoAtauPlaceholder(b.foto_utama,900,500)}" alt="${escapeHtml(b.judul)}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/900x500/176b3a/ffffff?text=DistanNews'">
           <div class="artikel-body">
             <span class="category">${escapeHtml(b.kategori || 'Umum')}</span>
             <h1>${escapeHtml(b.judul)}</h1>
