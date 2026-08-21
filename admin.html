@@ -55,10 +55,21 @@ tr:last-child td{border-bottom:none;}
 .badge-published{background:#e6f4ea;color:var(--green);}
 .badge-draft{background:#fdf3e0;color:#b7791f;}
 
-.aksi-btn{border:none;padding:6px 11px;border-radius:8px;font-size:12px;font-weight:700;margin-right:4px;color:#fff;}
+.aksi-btn{border:none;padding:6px 11px;border-radius:8px;font-size:12px;font-weight:700;margin-right:4px;color:#fff;margin-bottom:4px;}
 .aksi-edit{background:#3b82f6;}
 .aksi-hapus{background:var(--merah);}
 .aksi-publish{background:var(--green);}
+.aksi-lihat{background:#fff;color:var(--green-dark);border:1.5px solid var(--green);}
+.aksi-salin{background:#fff;color:#3b3b3b;border:1.5px solid var(--border);}
+.aksi-unpublish{background:#fff;color:#b7791f;border:1.5px solid #f0c987;}
+
+.filter-kelola{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px;}
+.search-wrap-admin{flex:1;min-width:180px;position:relative;}
+.search-wrap-admin span{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#88928c;font-size:13px;}
+.search-wrap-admin input{width:100%;border:1px solid var(--border);background:#f8faf8;border-radius:9px;padding:9px 12px 9px 34px;font-size:13px;outline:none;}
+.search-wrap-admin input:focus{border-color:var(--green);}
+.filter-kelola select{border:1px solid var(--border);background:#f8faf8;border-radius:9px;padding:9px 12px;font-size:13px;outline:none;min-width:150px;}
+.hasil-kosong-kelola{grid-column:1/-1;}
 
 .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
 .btn-primary{background:var(--green);color:#fff;border:none;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:700;}
@@ -107,6 +118,14 @@ form.form-berita textarea{resize:vertical;}
 .editor-content:empty:before{content:attr(data-placeholder);color:#9aa39c;pointer-events:none;}
 .editor-hint{font-size:11px;color:var(--muted);margin-top:6px;}
 
+.foto-preview-box{margin-top:8px;border:1px dashed var(--border);border-radius:10px;overflow:hidden;background:#f8faf8;display:none;}
+.foto-preview-box img{width:100%;max-height:220px;object-fit:cover;display:block;}
+.foto-preview-box.show{display:block;}
+.foto-preview-gagal{padding:12px;font-size:12px;color:var(--merah);text-align:center;}
+
+.counter-teks{font-size:11px;color:var(--muted);text-align:right;margin-top:4px;}
+.counter-teks.warn{color:#b7791f;}
+
 @media(max-width:720px){
     .layout{flex-direction:column;}
     .sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:10px;}
@@ -148,6 +167,17 @@ form.form-berita textarea{resize:vertical;}
         <h1 class="judul-halaman" style="margin-bottom:0;">Kelola Berita</h1>
         <button class="btn-primary" id="btn-ke-tambah">+ Tambah Berita</button>
       </div>
+      <div class="filter-kelola">
+        <div class="search-wrap-admin">
+          <span>🔍</span>
+          <input type="search" id="cariKelola" placeholder="Cari judul berita...">
+        </div>
+        <select id="filterStatusKelola">
+          <option value="">Semua Status</option>
+          <option value="PUBLISHED">Published</option>
+          <option value="DRAFT">Draft</option>
+        </select>
+      </div>
       <div id="wrap-tabel-berita">
         <div class="state-msg">Memuat data...</div>
       </div>
@@ -177,10 +207,14 @@ form.form-berita textarea{resize:vertical;}
         <input type="text" id="f-penulis" required>
 
         <label for="f-foto">URL Foto Utama</label>
-        <input type="url" id="f-foto" placeholder="https://...">
+        <input type="url" id="f-foto" placeholder="https://... (link Google Drive juga bisa)">
+        <div class="foto-preview-box" id="foto-preview-box">
+          <img id="foto-preview-img" src="" alt="Pratinjau foto utama">
+        </div>
 
         <label for="f-ringkasan">Ringkasan</label>
-        <textarea id="f-ringkasan" rows="2"></textarea>
+        <textarea id="f-ringkasan" rows="2" maxlength="200"></textarea>
+        <div class="counter-teks" id="counter-ringkasan">0 / 200 karakter</div>
 
         <label for="f-isi">Isi Berita *</label>
         <div class="editor-toolbar" id="editor-toolbar">
@@ -269,6 +303,11 @@ form.form-berita textarea{resize:vertical;}
   const tabBtns = document.querySelectorAll('.tab-btn');
   const tabs = document.querySelectorAll('.tab');
   function bukaTab(nama){
+    const sedangDiFormTambah = document.getElementById('tab-tambah').classList.contains('active');
+    if(sedangDiFormTambah && nama !== 'tambah' && typeof formBerubah !== 'undefined' && formBerubah){
+      if(!confirm('Ada perubahan yang belum disimpan. Yakin ingin meninggalkan halaman ini?')) return;
+      formBerubah = false;
+    }
     tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === nama));
     tabs.forEach(t => t.classList.toggle('active', t.id === 'tab-' + nama));
     if(nama === 'dashboard') muatDashboard();
@@ -281,6 +320,7 @@ form.form-berita textarea{resize:vertical;}
   });
 
   let cacheBerita = [];
+  let filteredKelola = [];
 
   async function ambilSemuaBerita(){
     const params = new URLSearchParams({ action:'getAdminList', token });
@@ -305,37 +345,89 @@ form.form-berita textarea{resize:vertical;}
     }
   }
 
+  function terapkanFilterKelola(){
+    const q = (document.getElementById('cariKelola').value || '').toLowerCase().trim();
+    const status = document.getElementById('filterStatusKelola').value;
+    filteredKelola = cacheBerita.filter(b => {
+      const cocokJudul = (b.judul || '').toLowerCase().includes(q);
+      const cocokStatus = !status || b.status === status;
+      return cocokJudul && cocokStatus;
+    });
+    renderTabelKelola();
+  }
+
+  // Link publik ke halaman artikel, dipakai untuk tombol "Lihat" dan "Salin Link"
+  function buatLinkArtikel(b){
+    const param = b.slug ? `slug=${encodeURIComponent(b.slug)}` : `id=${encodeURIComponent(b.id)}`;
+    return new URL(`artikel.html?${param}`, window.location.href).href;
+  }
+
+  function renderTabelKelola(){
+    const wrap = document.getElementById('wrap-tabel-berita');
+
+    if(filteredKelola.length === 0){
+      wrap.innerHTML = cacheBerita.length === 0
+        ? `<div class="state-msg">Belum ada berita. Klik "Tambah Berita" untuk membuat berita pertama.</div>`
+        : `<div class="state-msg">Tidak ada berita yang cocok dengan pencarian/filter.</div>`;
+      return;
+    }
+
+    const baris = filteredKelola.map(b => `
+      <tr>
+        <td>${escapeHtml(b.judul)}</td>
+        <td>${escapeHtml(b.kategori)}</td>
+        <td>${formatTanggal(b.tanggal_publish || b.timestamp)}</td>
+        <td><span class="badge ${b.status === 'PUBLISHED' ? 'badge-published' : 'badge-draft'}">${escapeHtml(b.status)}</span></td>
+        <td>
+          <button class="aksi-btn aksi-lihat" data-id="${escapeHtml(b.id)}" title="Buka halaman publik di tab baru">Lihat</button>
+          <button class="aksi-btn aksi-edit" data-id="${escapeHtml(b.id)}">Edit</button>
+          ${b.status === 'DRAFT'
+            ? `<button class="aksi-btn aksi-publish" data-id="${escapeHtml(b.id)}">Publish</button>`
+            : `<button class="aksi-btn aksi-unpublish" data-id="${escapeHtml(b.id)}" title="Kembalikan ke draft">Batalkan Publish</button>
+               <button class="aksi-btn aksi-salin" data-id="${escapeHtml(b.id)}" title="Salin link publik">Salin Link</button>`
+          }
+          <button class="aksi-btn aksi-hapus" data-id="${escapeHtml(b.id)}">Hapus</button>
+        </td>
+      </tr>`).join('');
+
+    wrap.innerHTML = `
+      <table>
+        <thead><tr><th>Judul</th><th>Kategori</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead>
+        <tbody>${baris}</tbody>
+      </table>`;
+
+    wrap.querySelectorAll('.aksi-edit').forEach(btn => btn.addEventListener('click', () => bukaEdit(btn.dataset.id)));
+    wrap.querySelectorAll('.aksi-hapus').forEach(btn => btn.addEventListener('click', () => hapusBerita(btn.dataset.id)));
+    wrap.querySelectorAll('.aksi-publish').forEach(btn => btn.addEventListener('click', () => publishBerita(btn.dataset.id)));
+    wrap.querySelectorAll('.aksi-unpublish').forEach(btn => btn.addEventListener('click', () => unpublishBerita(btn.dataset.id)));
+    wrap.querySelectorAll('.aksi-lihat').forEach(btn => btn.addEventListener('click', () => {
+      const b = cacheBerita.find(x => String(x.id) === String(btn.dataset.id));
+      if(b) window.open(buatLinkArtikel(b), '_blank');
+    }));
+    wrap.querySelectorAll('.aksi-salin').forEach(btn => btn.addEventListener('click', async () => {
+      const b = cacheBerita.find(x => String(x.id) === String(btn.dataset.id));
+      if(!b) return;
+      const link = buatLinkArtikel(b);
+      try{
+        await navigator.clipboard.writeText(link);
+        const teksAsli = btn.textContent;
+        btn.textContent = 'Tersalin!';
+        setTimeout(() => { btn.textContent = teksAsli; }, 1500);
+      }catch(e){
+        prompt('Salin link berikut secara manual:', link);
+      }
+    }));
+  }
+
+  document.getElementById('cariKelola').addEventListener('input', terapkanFilterKelola);
+  document.getElementById('filterStatusKelola').addEventListener('change', terapkanFilterKelola);
+
   async function muatTabelBerita(){
     const wrap = document.getElementById('wrap-tabel-berita');
     wrap.innerHTML = `<div class="state-msg">Memuat data...</div>`;
     try{
       cacheBerita = await ambilSemuaBerita();
-      if(cacheBerita.length === 0){
-        wrap.innerHTML = `<div class="state-msg">Belum ada berita. Klik "Tambah Berita" untuk membuat berita pertama.</div>`;
-        return;
-      }
-      const baris = cacheBerita.map(b => `
-        <tr>
-          <td>${escapeHtml(b.judul)}</td>
-          <td>${escapeHtml(b.kategori)}</td>
-          <td>${formatTanggal(b.tanggal_publish || b.timestamp)}</td>
-          <td><span class="badge ${b.status === 'PUBLISHED' ? 'badge-published' : 'badge-draft'}">${escapeHtml(b.status)}</span></td>
-          <td>
-            <button class="aksi-btn aksi-edit" data-id="${escapeHtml(b.id)}">Edit</button>
-            ${b.status === 'DRAFT' ? `<button class="aksi-btn aksi-publish" data-id="${escapeHtml(b.id)}">Publish</button>` : ''}
-            <button class="aksi-btn aksi-hapus" data-id="${escapeHtml(b.id)}">Hapus</button>
-          </td>
-        </tr>`).join('');
-
-      wrap.innerHTML = `
-        <table>
-          <thead><tr><th>Judul</th><th>Kategori</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr></thead>
-          <tbody>${baris}</tbody>
-        </table>`;
-
-      wrap.querySelectorAll('.aksi-edit').forEach(btn => btn.addEventListener('click', () => bukaEdit(btn.dataset.id)));
-      wrap.querySelectorAll('.aksi-hapus').forEach(btn => btn.addEventListener('click', () => hapusBerita(btn.dataset.id)));
-      wrap.querySelectorAll('.aksi-publish').forEach(btn => btn.addEventListener('click', () => publishBerita(btn.dataset.id)));
+      terapkanFilterKelola();
     }catch(err){
       wrap.innerHTML = `<div class="state-msg">Gagal memuat data: ${escapeHtml(err.message)}</div>`;
     }
@@ -355,6 +447,86 @@ form.form-berita textarea{resize:vertical;}
     alert(json.message);
     if(json.success) muatTabelBerita();
   }
+
+  // Mengembalikan berita PUBLISHED ke status DRAFT (mis. untuk direvisi sebelum tayang lagi)
+  async function unpublishBerita(id){
+    const b = cacheBerita.find(x => String(x.id) === String(id));
+    if(!b) return;
+    if(!confirm('Batalkan publish berita ini? Berita akan disembunyikan dari halaman publik dan berubah jadi Draft.')) return;
+    const json = await apiPost({ action:'saveBerita', token, id: b.id, judul: b.judul, kategori: b.kategori,
+      penulis: b.penulis, foto_utama: b.foto_utama, ringkasan: b.ringkasan, isi: b.isi,
+      sumber: b.sumber, keterangan_foto: b.keterangan_foto, status: 'DRAFT' });
+    if(tanganiSesiTidakValid(json)) return;
+    alert(json.success ? 'Berita dikembalikan ke status Draft.' : json.message);
+    if(json.success) muatTabelBerita();
+  }
+
+  // ===================== PREVIEW FOTO UTAMA (support link Google Drive) =====================
+  function konversiUrlGambar(url){
+    if(!url) return url;
+    url = String(url).trim();
+    if(url === '') return url;
+    if(url.includes('drive.google.com') || url.includes('googleusercontent.com')){
+      let fileId = null;
+      let cocok = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+      if(cocok) fileId = cocok[1];
+      if(!fileId){
+        cocok = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+        if(cocok) fileId = cocok[1];
+      }
+      if(fileId) return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+    }
+    return url;
+  }
+
+  const inputFoto = document.getElementById('f-foto');
+  const previewBox = document.getElementById('foto-preview-box');
+  const previewImg = document.getElementById('foto-preview-img');
+  let debounceFoto;
+
+  function perbaruiPreviewFoto(){
+    const url = inputFoto.value.trim();
+    if(!url){
+      previewBox.classList.remove('show');
+      previewBox.innerHTML = `<img id="foto-preview-img" src="" alt="Pratinjau foto utama">`;
+      return;
+    }
+    previewBox.innerHTML = `<img id="foto-preview-img" src="${konversiUrlGambar(url)}" alt="Pratinjau foto utama">`;
+    previewBox.classList.add('show');
+    const img = previewBox.querySelector('img');
+    img.onerror = () => {
+      previewBox.innerHTML = `<div class="foto-preview-gagal">⚠️ Foto tidak dapat dimuat. Periksa link atau pastikan akses berbagi Google Drive sudah "Anyone with the link".</div>`;
+    };
+  }
+  inputFoto.addEventListener('input', () => {
+    clearTimeout(debounceFoto);
+    debounceFoto = setTimeout(perbaruiPreviewFoto, 500);
+    tandaiPerubahanForm();
+  });
+
+  // ===================== COUNTER RINGKASAN =====================
+  const inputRingkasan = document.getElementById('f-ringkasan');
+  const counterRingkasan = document.getElementById('counter-ringkasan');
+  function perbaruiCounterRingkasan(){
+    const jml = inputRingkasan.value.length;
+    counterRingkasan.textContent = `${jml} / 200 karakter`;
+    counterRingkasan.classList.toggle('warn', jml > 160);
+  }
+  inputRingkasan.addEventListener('input', perbaruiCounterRingkasan);
+
+  // ===================== PERINGATAN PERUBAHAN BELUM TERSIMPAN =====================
+  let formBerubah = false;
+  function tandaiPerubahanForm(){ formBerubah = true; }
+  ['f-judul','f-kategori','f-penulis','f-foto','f-ringkasan','f-sumber','f-ket-foto'].forEach(id => {
+    document.getElementById(id).addEventListener('input', tandaiPerubahanForm);
+    document.getElementById(id).addEventListener('change', tandaiPerubahanForm);
+  });
+  window.addEventListener('beforeunload', (e) => {
+    if(formBerubah){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
 
   // ===================== EDITOR ISI BERITA (RICH TEXT) =====================
   const editorEl = document.getElementById('f-isi');
@@ -386,6 +558,7 @@ form.form-berita textarea{resize:vertical;}
   // Bersihkan sisa <br> kosong agar placeholder tampil saat editor benar-benar kosong
   editorEl.addEventListener('input', () => {
     if(editorEl.innerText.trim() === '') editorEl.innerHTML = '';
+    tandaiPerubahanForm();
   });
 
   const form = document.getElementById('form-berita');
@@ -396,7 +569,10 @@ form.form-berita textarea{resize:vertical;}
     document.getElementById('f-id').value = '';
     form.reset();
     editorEl.innerHTML = '';
+    previewBox.classList.remove('show');
+    perbaruiCounterRingkasan();
     pesanForm.style.display = 'none';
+    formBerubah = false;
   }
 
   function bukaEdit(id){
@@ -426,10 +602,14 @@ form.form-berita textarea{resize:vertical;}
     document.getElementById('f-sumber').value = b.sumber || '';
     document.getElementById('f-ket-foto').value = b.keterangan_foto || '';
     pesanForm.style.display = 'none';
+    perbaruiPreviewFoto();
+    perbaruiCounterRingkasan();
+    formBerubah = false;
     bukaTab('tambah');
   }
 
   document.getElementById('btn-batal-form').addEventListener('click', () => {
+    if(formBerubah && !confirm('Ada perubahan yang belum disimpan. Yakin ingin membatalkan?')) return;
     resetForm();
     bukaTab('kelola');
   });
@@ -479,6 +659,7 @@ form.form-berita textarea{resize:vertical;}
       pesanForm.style.display = 'block';
 
       if(json.success){
+        formBerubah = false;
         setTimeout(() => {
           resetForm();
           bukaTab('kelola');
