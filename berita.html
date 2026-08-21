@@ -244,9 +244,31 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
     if(!iso) return '-';
     return new Date(iso).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
   }
-  function fotoAtauPlaceholder(url, w, h){
-    return (url && url.trim() !== '') ? url : `https://placehold.co/${w}x${h}/176b3a/ffffff?text=DistanNews`;
+ function fotoAtauPlaceholder(url, w, h){
+  if(!url || url.trim() === ''){
+    return `https://placehold.co/${w}x${h}/176b3a/ffffff?text=DistanNews`;
   }
+
+  url = url.trim();
+
+  // Google Drive: https://drive.google.com/file/d/FILE_ID/view
+  const match = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
+
+  if(match){
+    const fileId = match[1];
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${w}`;
+  }
+
+  // Google Drive format: https://drive.google.com/open?id=FILE_ID
+  const matchOpen = url.match(/[?&]id=([^&]+)/);
+
+  if(url.includes('drive.google.com') && matchOpen){
+    const fileId = matchOpen[1];
+    return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${w}`;
+  }
+
+  return url;
+}
 
   function renderFeatured(b){
     const wrap = document.getElementById('featured-wrap');
