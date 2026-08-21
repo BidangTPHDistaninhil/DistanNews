@@ -297,8 +297,50 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
     if(!iso) return '-';
     return new Date(iso).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
   }
+
+  // =====================================================
+  // KONVERSI LINK GOOGLE DRIVE -> LINK GAMBAR LANGSUNG
+  // Link Drive biasa (mis. .../file/d/ID/view atau ?id=ID)
+  // tidak bisa langsung dipakai sebagai src <img>.
+  // Fungsi ini mendeteksi ID file Drive dan mengubahnya
+  // ke format thumbnail yang bisa ditampilkan langsung.
+  // Pastikan file di Drive di-share dengan akses:
+  // "Anyone with the link" (Siapa saja yang memiliki link).
+  // =====================================================
+  function konversiUrlGambar(url){
+    if(!url) return url;
+    url = String(url).trim();
+    if(url === '') return url;
+
+    // Hanya proses jika ini link Google Drive
+    if(url.includes('drive.google.com') || url.includes('googleusercontent.com')){
+      let fileId = null;
+
+      // Pola 1: https://drive.google.com/file/d/FILE_ID/view?...
+      let cocok = url.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+      if(cocok) fileId = cocok[1];
+
+      // Pola 2: https://drive.google.com/open?id=FILE_ID
+      // atau https://drive.google.com/uc?id=FILE_ID&export=download
+      if(!fileId){
+        cocok = url.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+        if(cocok) fileId = cocok[1];
+      }
+
+      if(fileId){
+        // Format thumbnail Google Drive, paling stabil untuk hotlink <img>
+        // sz=w1000 = lebar 1000px, bisa diubah sesuai kebutuhan
+        return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+      }
+    }
+
+    // Bukan link Drive (atau ID tidak terbaca) -> pakai apa adanya
+    return url;
+  }
+
   function fotoAtauPlaceholder(url, w, h){
-    return (url && url.trim() !== '') ? url : `https://placehold.co/${w}x${h}/176b3a/ffffff?text=DistanNews`;
+    const urlBersih = konversiUrlGambar(url);
+    return (urlBersih && urlBersih.trim() !== '') ? urlBersih : `https://placehold.co/${w}x${h}/176b3a/ffffff?text=DistanNews`;
   }
 
   function renderFeatured(b){
@@ -310,7 +352,7 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
     wrap.innerHTML = `
       <article class="featured-card">
         <a href="artikel.html?slug=${encodeURIComponent(b.slug || '')}" class="featured-image">
-          <img src="${fotoAtauPlaceholder(b.foto_utama,1400,700)}" alt="${escapeHtml(b.judul)}" onerror="this.src='https://placehold.co/1400x700/176b3a/ffffff?text=DistanNews'">
+          <img src="${fotoAtauPlaceholder(b.foto_utama,1400,700)}" alt="${escapeHtml(b.judul)}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/1400x700/176b3a/ffffff?text=DistanNews'">
         </a>
         <div class="featured-content">
           <span class="category">${escapeHtml(b.kategori || 'Umum')}</span>
@@ -330,7 +372,7 @@ footer{background:#092f1a;color:#fff;margin-top:20px;}
       <a href="artikel.html?slug=${encodeURIComponent(b.slug || '')}">
         <article class="news-card">
           <div class="news-image">
-            <img src="${fotoAtauPlaceholder(b.foto_utama,900,600)}" alt="${escapeHtml(b.judul)}" loading="lazy" onerror="this.src='https://placehold.co/900x600/176b3a/ffffff?text=DistanNews'">
+            <img src="${fotoAtauPlaceholder(b.foto_utama,900,600)}" alt="${escapeHtml(b.judul)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='https://placehold.co/900x600/176b3a/ffffff?text=DistanNews'">
           </div>
           <div class="news-body">
             <div class="news-category">${escapeHtml(b.kategori || 'Umum')}</div>
