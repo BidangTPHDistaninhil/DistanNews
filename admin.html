@@ -81,6 +81,32 @@ form.form-berita textarea{resize:vertical;}
 
 .state-msg{padding:30px 10px;text-align:center;color:var(--muted);font-size:13px;}
 
+/* ===================== EDITOR ISI BERITA (RICH TEXT) ===================== */
+.editor-toolbar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:3px;
+    padding:7px;border:1px solid var(--border);border-bottom:none;
+    border-radius:10px 10px 0 0;background:#f8faf8;
+}
+.editor-toolbar button{
+    border:1px solid transparent;background:none;
+    min-width:32px;height:32px;padding:0 8px;border-radius:7px;
+    font-size:13px;font-weight:700;color:var(--text);
+    display:flex;align-items:center;justify-content:center;
+}
+.editor-toolbar button:hover{background:var(--green-light);border-color:var(--border);}
+.editor-toolbar button.active{background:var(--green);color:#fff;}
+.editor-toolbar .sep{width:1px;align-self:stretch;background:var(--border);margin:2px 4px;}
+.editor-content{
+    min-height:230px;max-height:520px;overflow-y:auto;
+    border:1px solid var(--border);border-radius:0 0 10px 10px;
+    padding:13px 15px;font-size:14px;line-height:1.75;background:#fff;
+}
+.editor-content:focus{outline:none;border-color:var(--green);}
+.editor-content p{margin-bottom:10px;}
+.editor-content ul,.editor-content ol{margin:0 0 10px 22px;}
+.editor-content:empty:before{content:attr(data-placeholder);color:#9aa39c;pointer-events:none;}
+.editor-hint{font-size:11px;color:var(--muted);margin-top:6px;}
+
 @media(max-width:720px){
     .layout{flex-direction:column;}
     .sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:10px;}
@@ -157,7 +183,23 @@ form.form-berita textarea{resize:vertical;}
         <textarea id="f-ringkasan" rows="2"></textarea>
 
         <label for="f-isi">Isi Berita *</label>
-        <textarea id="f-isi" rows="8" required placeholder="Tulis isi berita. Pisahkan paragraf dengan baris baru."></textarea>
+        <div class="editor-toolbar" id="editor-toolbar">
+          <button type="button" data-cmd="bold" title="Tebal (Ctrl+B)"><b>B</b></button>
+          <button type="button" data-cmd="italic" title="Miring (Ctrl+I)"><i>I</i></button>
+          <button type="button" data-cmd="underline" title="Garis bawah (Ctrl+U)"><u>U</u></button>
+          <span class="sep"></span>
+          <button type="button" data-cmd="justifyLeft" title="Rata Kiri">⟸</button>
+          <button type="button" data-cmd="justifyCenter" title="Rata Tengah">≡</button>
+          <button type="button" data-cmd="justifyRight" title="Rata Kanan">⟹</button>
+          <button type="button" data-cmd="justifyFull" title="Rata Kanan-Kiri">☰</button>
+          <span class="sep"></span>
+          <button type="button" data-cmd="insertUnorderedList" title="Daftar Bullet">•⁝</button>
+          <button type="button" data-cmd="insertOrderedList" title="Daftar Bernomor">1.⁝</button>
+          <span class="sep"></span>
+          <button type="button" data-cmd="removeFormat" title="Hapus Format">Tx</button>
+        </div>
+        <div class="editor-content" id="f-isi" contenteditable="true" data-placeholder="Tulis isi berita di sini. Gunakan Enter untuk paragraf baru."></div>
+        <div class="editor-hint">Pilih teks lalu klik tombol di atas untuk mengatur format (tebal, miring, rata kiri/tengah/kanan, dll).</div>
 
         <label for="f-sumber">Sumber</label>
         <input type="text" id="f-sumber">
@@ -314,6 +356,38 @@ form.form-berita textarea{resize:vertical;}
     if(json.success) muatTabelBerita();
   }
 
+  // ===================== EDITOR ISI BERITA (RICH TEXT) =====================
+  const editorEl = document.getElementById('f-isi');
+  const toolbarBtns = document.querySelectorAll('#editor-toolbar button[data-cmd]');
+
+  try{ document.execCommand('defaultParagraphSeparator', false, 'p'); }catch(e){}
+
+  toolbarBtns.forEach(btn => {
+    btn.addEventListener('mousedown', (e) => e.preventDefault()); // supaya seleksi teks tidak hilang
+    btn.addEventListener('click', () => {
+      editorEl.focus();
+      document.execCommand(btn.dataset.cmd, false, null);
+      perbaruiStateToolbar();
+    });
+  });
+
+  function perbaruiStateToolbar(){
+    toolbarBtns.forEach(btn => {
+      try{
+        btn.classList.toggle('active', document.queryCommandState(btn.dataset.cmd));
+      }catch(e){ /* abaikan jika command tidak didukung browser */ }
+    });
+  }
+  editorEl.addEventListener('keyup', perbaruiStateToolbar);
+  editorEl.addEventListener('mouseup', perbaruiStateToolbar);
+  document.addEventListener('selectionchange', () => {
+    if(document.activeElement === editorEl) perbaruiStateToolbar();
+  });
+  // Bersihkan sisa <br> kosong agar placeholder tampil saat editor benar-benar kosong
+  editorEl.addEventListener('input', () => {
+    if(editorEl.innerText.trim() === '') editorEl.innerHTML = '';
+  });
+
   const form = document.getElementById('form-berita');
   const pesanForm = document.getElementById('pesan-form');
 
@@ -321,6 +395,7 @@ form.form-berita textarea{resize:vertical;}
     document.getElementById('judul-form-berita').textContent = 'Tambah Berita';
     document.getElementById('f-id').value = '';
     form.reset();
+    editorEl.innerHTML = '';
     pesanForm.style.display = 'none';
   }
 
@@ -334,7 +409,20 @@ form.form-berita textarea{resize:vertical;}
     document.getElementById('f-penulis').value = b.penulis || '';
     document.getElementById('f-foto').value = b.foto_utama || '';
     document.getElementById('f-ringkasan').value = b.ringkasan || '';
-    document.getElementById('f-isi').value = b.isi || '';
+
+    // Kompatibel dengan berita lama (teks polos) maupun baru (HTML dari editor)
+    const isiTersimpan = b.isi || '';
+    const sudahHtml = /<\/?[a-z][\s\S]*>/i.test(isiTersimpan);
+    if(sudahHtml){
+      editorEl.innerHTML = isiTersimpan;
+    }else{
+      editorEl.innerHTML = String(isiTersimpan)
+        .split(/\n+/)
+        .filter(p => p.trim() !== '')
+        .map(p => `<p>${escapeHtml(p.trim())}</p>`)
+        .join('');
+    }
+
     document.getElementById('f-sumber').value = b.sumber || '';
     document.getElementById('f-ket-foto').value = b.keterangan_foto || '';
     pesanForm.style.display = 'none';
@@ -354,14 +442,15 @@ form.form-berita textarea{resize:vertical;}
       penulis: document.getElementById('f-penulis').value.trim(),
       foto_utama: document.getElementById('f-foto').value.trim(),
       ringkasan: document.getElementById('f-ringkasan').value.trim(),
-      isi: document.getElementById('f-isi').value.trim(),
+      isi: editorEl.innerHTML.trim(),
       sumber: document.getElementById('f-sumber').value.trim(),
       keterangan_foto: document.getElementById('f-ket-foto').value.trim()
     };
   }
 
   function validasiForm(data){
-    if(!data.judul || !data.kategori || !data.penulis || !data.isi){
+    const isiPolos = editorEl.innerText.trim();
+    if(!data.judul || !data.kategori || !data.penulis || !isiPolos){
       return 'Judul, kategori, penulis, dan isi berita wajib diisi.';
     }
     return null;
