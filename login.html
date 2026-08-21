@@ -3,58 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login Admin - DistanNews</title>
+<title>Login Admin — DistanNews</title>
 <style>
-  :root{
-    --hijau: #1e6b2f;
-    --hijau-tua: #144d21;
-    --hijau-muda: #e8f5ea;
-    --abu: #6b7280;
-    --border: #e2e8e4;
-    --merah: #c0392b;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{
-    font-family: Arial, Helvetica, sans-serif;
-    background:linear-gradient(135deg,var(--hijau),var(--hijau-tua));
+:root{
+    --green:#176b3a;
+    --green-dark:#0d4727;
+    --green-light:#eaf6ef;
+    --gold:#d6a928;
+    --text:#17231b;
+    --muted:#6b756f;
+    --border:#e3e9e4;
+    --merah:#c0392b;
+    --shadow:0 12px 35px rgba(16,45,28,.18);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+    font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;
+    background:radial-gradient(circle at top left, #1e8a4c, var(--green-dark) 65%);
     min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
-  }
-  .box{
-    background:#fff;border-radius:12px;padding:32px;max-width:380px;width:100%;
-    box-shadow:0 12px 30px rgba(0,0,0,.2);
-  }
-  .logo{text-align:center;font-size:24px;font-weight:bold;color:var(--hijau-tua);margin-bottom:4px;}
-  .logo span{color:var(--hijau);}
-  .subtitle{text-align:center;font-size:13px;color:var(--abu);margin-bottom:24px;}
+    color:var(--text);
+}
+a{color:inherit;text-decoration:none;}
 
-  label{display:block;font-size:13px;font-weight:700;color:#333;margin-bottom:6px;margin-top:14px;}
-  input{
-    width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;
-  }
-  input:focus{outline:2px solid var(--hijau);border-color:var(--hijau);}
+.box{background:#fff;border-radius:22px;padding:36px;max-width:400px;width:100%;box-shadow:var(--shadow);}
+.brand{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:6px;}
+.brand-logo{width:46px;height:46px;border-radius:12px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:23px;}
+.brand-text strong{display:block;color:var(--green-dark);font-size:21px;line-height:1;}
+.brand-text span{font-size:11px;color:var(--muted);}
+.subtitle{text-align:center;font-size:13px;color:var(--muted);margin:14px 0 22px;}
 
-  button{
-    width:100%;margin-top:22px;background:var(--hijau);color:#fff;border:none;padding:12px;
-    border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;
-  }
-  button:hover{background:var(--hijau-tua);}
-  button:disabled{opacity:.6;cursor:not-allowed;}
+label{display:block;font-size:13px;font-weight:700;color:#333;margin-bottom:6px;margin-top:14px;}
+input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:#f8faf8;}
+input:focus{outline:2px solid var(--green);border-color:var(--green);}
 
-  .pesan-error{
-    margin-top:14px;background:#fdecea;color:var(--merah);border:1px solid #f5c6c0;
-    padding:10px 12px;border-radius:8px;font-size:13px;display:none;
-  }
+button{width:100%;margin-top:22px;background:var(--green);color:#fff;border:none;padding:12px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s;}
+button:hover{background:var(--green-dark);}
+button:disabled{opacity:.6;cursor:not-allowed;}
 
-  .kembali{display:block;text-align:center;margin-top:18px;font-size:13px;color:var(--hijau-tua);text-decoration:none;font-weight:600;}
+.pesan-error{margin-top:14px;background:#fdecea;color:var(--merah);border:1px solid #f5c6c0;padding:10px 12px;border-radius:10px;font-size:13px;display:none;}
 
-  .catatan{margin-top:20px;font-size:11px;color:var(--abu);line-height:1.5;text-align:center;}
+.kembali{display:block;text-align:center;margin-top:18px;font-size:13px;color:var(--green-dark);font-weight:700;}
+.catatan{margin-top:20px;font-size:11px;color:var(--muted);line-height:1.5;text-align:center;}
 </style>
 </head>
 <body>
 
 <div class="box">
-  <div class="logo">Distan<span>News</span></div>
-  <div class="subtitle">Login Admin</div>
+  <div class="brand">
+    <div class="brand-logo">🌾</div>
+    <div class="brand-text"><strong>DistanNews</strong><span>Informasi Pertanian</span></div>
+  </div>
+  <div class="subtitle">Masuk ke Dashboard Admin</div>
 
   <form id="form-login">
     <label for="username">Username</label>
@@ -68,7 +67,7 @@
     <button type="submit" id="btn-login">Login</button>
   </form>
 
-  <a class="kembali" href="index.html">&larr; Kembali ke beranda</a>
+  <a class="kembali" href="index.html">← Kembali ke beranda</a>
 
   <div class="catatan">
     Sistem login ini menggunakan verifikasi sederhana berbasis Google Apps Script
@@ -84,7 +83,6 @@
   // =====================================================
   const API_URL = "https://script.google.com/macros/s/AKfycbwABO9Qg2xR4Z49K6mH3kjgitq1qtjGK1ZOesGxgsX40QQ82aF6UgevfWMLRO3KpiLr/exec";
 
-  // Jika sudah login (token masih berlaku), langsung arahkan ke admin.html
   (function cekSesiAktif(){
     const token = sessionStorage.getItem('distannews_token');
     const expiredAt = sessionStorage.getItem('distannews_expired_at');
@@ -109,7 +107,7 @@
     try{
       const res = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // menghindari CORS preflight
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action:'login', username, password })
       });
       const json = await res.json();
